@@ -1,18 +1,36 @@
-from mcp.server.mcpserver import MCPServer
-import httpx
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
+from mcp.server.mcpserver import Context, MCPServer
+
 from auth import AuthManager
 
-auth = AuthManager()
 
-mcp = MCPServer("Smart Transport")
+@asynccontextmanager
+async def lifespan(server: MCPServer) -> AsyncIterator[dict]:
+    auth = AuthManager()
+
+    await auth.start()
+
+    try:
+        yield {
+            "auth": auth,
+        }
+    finally:
+        await auth.close()
 
 
-BACKEND_URL = "http://localhost:8000/api/v1"
+mcp = MCPServer(
+    name="Smart Transport",
+    lifespan=lifespan,
+)
 
 
 @mcp.tool()
-async def get_all_routes() -> dict:
-    """Get all routes available to the current user's tenant."""
+async def get_all_routes(ctx: Context) -> dict:
+    """Get information on all existing routes."""
+
+    auth: AuthManager = ctx.request_context.lifespan_context["auth"]
 
     response = await auth.request(
         "GET",
@@ -22,6 +40,7 @@ async def get_all_routes() -> dict:
     response.raise_for_status()
 
     return response.json()
+
     
 @mcp.tool()
 async def get_route(route_id: int) -> dict:
