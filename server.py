@@ -15,6 +15,7 @@ from tools.vehicles import register_vehicle_tools
 from tools.analytics import register_analytics_tools
 from tools.arrivals import register_arrival_tools
 from tools.boardings import register_boarding_tools
+from tools.audit import register_audit_tools
 
 
 @asynccontextmanager
@@ -47,6 +48,7 @@ register_alert_tools(mcp)
 register_analytics_tools(mcp)
 register_arrival_tools(mcp)
 register_boarding_tools(mcp)
+register_audit_tools(mcp)
     
 
 if __name__ == "__main__":
