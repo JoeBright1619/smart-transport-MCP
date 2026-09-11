@@ -16,6 +16,8 @@ from tools.analytics import register_analytics_tools
 from tools.arrivals import register_arrival_tools
 from tools.boardings import register_boarding_tools
 from tools.audit import register_audit_tools
+from tools.users import register_user_tools
+from tools.superadmin import register_superadmin_tools
 
 
 @asynccontextmanager
@@ -49,6 +51,8 @@ register_analytics_tools(mcp)
 register_arrival_tools(mcp)
 register_boarding_tools(mcp)
 register_audit_tools(mcp)
+register_user_tools(mcp)
+register_superadmin_tools(mcp)
     
 
 if __name__ == "__main__":
