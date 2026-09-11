@@ -13,6 +13,7 @@ from tools.stops import register_stop_tools
 from tools.trips import register_trip_tools
 from tools.vehicles import register_vehicle_tools
 from tools.analytics import register_analytics_tools
+from tools.arrivals import register_arrival_tools
 
 
 @asynccontextmanager
@@ -43,6 +44,7 @@ register_maintenance_tools(mcp)
 register_passenger_tools(mcp)
 register_alert_tools(mcp)
 register_analytics_tools(mcp)
+register_arrival_tools(mcp)
     
 
 if __name__ == "__main__":
