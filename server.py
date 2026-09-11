@@ -43,17 +43,17 @@ async def get_all_routes(ctx: Context) -> dict:
 
     
 @mcp.tool()
-async def get_route(route_id: int) -> dict:
+async def get_route(route_id: str, ctx: Context) -> dict:
     """Get information about a bus route."""
+    auth: AuthManager = ctx.request_context.lifespan_context["auth"]
+    response = await auth.request(
+        "GET",
+        f"/routes/{route_id}"
+    )
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{BACKEND_URL}/routes/{route_id}"
-        )
+    response.raise_for_status()
 
-        response.raise_for_status()
-
-        return response.json()
+    return response.json()
 
 
 if __name__ == "__main__":
