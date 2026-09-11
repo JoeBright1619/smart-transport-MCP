@@ -7,6 +7,7 @@ from auth import AuthManager
 from tools.routes import register_route_tools
 from tools.vehicles import register_vehicle_tools
 from tools.stops import register_stop_tools
+from tools.trips import register_trip_tools
 
 @asynccontextmanager
 async def lifespan(server: MCPServer) -> AsyncIterator[dict]:
@@ -30,6 +31,7 @@ mcp = MCPServer(
 register_route_tools(mcp)
 register_vehicle_tools(mcp)
 register_stop_tools(mcp)
+register_trip_tools(mcp)
     
 
 if __name__ == "__main__":
