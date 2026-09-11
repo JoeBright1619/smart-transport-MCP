@@ -1,7 +1,7 @@
 from mcp.server.mcpserver import Context
 from auth import AuthManager
 
-def register_router_tools(server):
+def register_route_tools(server):
     @server.tool()
     async def get_route_details(route_id: str, ctx: Context) -> dict:
         """Get information about a bus route."""
