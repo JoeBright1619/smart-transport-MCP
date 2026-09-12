@@ -55,6 +55,8 @@ class AuthManager:
         self,
         method: str,
         url: str,
+        *,
+        base_url: str = API_BASE_URL,
         **kwargs,
     ) -> httpx.Response:
 
@@ -72,7 +74,7 @@ class AuthManager:
 
         response = await self.client.request(
             method,
-            f"{API_BASE_URL}{url}",
+            f"{base_url}{url}",
             headers=headers,
             **kwargs,
         )
@@ -88,11 +90,10 @@ class AuthManager:
 
         return await self.client.request(
             method,
-            f"{API_BASE_URL}{url}",
+            f"{base_url}{url}",
             headers=headers,
             **kwargs,
         )
-
     async def login_from_environment(self) -> None:
         email = os.getenv("SMART_TRANSPORT_EMAIL")
         password = os.getenv("SMART_TRANSPORT_PASSWORD")

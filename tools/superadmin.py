@@ -4,7 +4,7 @@ from mcp.server.mcpserver import Context
 
 from auth import AuthManager
 
-
+AUTH_BASE_URL = "http://localhost:8000"
 def register_superadmin_tools(server):
     @server.tool()
     async def get_all_tenants(
@@ -27,6 +27,7 @@ def register_superadmin_tools(server):
         response = await auth.request(
             "GET",
             "/superadmin/tenants",
+            base_url=AUTH_BASE_URL,
             params=params,
         )
         response.raise_for_status()
@@ -43,6 +44,7 @@ def register_superadmin_tools(server):
         response = await auth.request(
             "GET",
             f"/superadmin/tenants/{tenant_id}",
+            base_url=AUTH_BASE_URL,
         )
         response.raise_for_status()
         return response.json()
@@ -68,6 +70,7 @@ def register_superadmin_tools(server):
         response = await auth.request(
             "GET",
             "/superadmin/passengers",
+            base_url=AUTH_BASE_URL,
             params=params,
         )
         response.raise_for_status()
@@ -91,6 +94,7 @@ def register_superadmin_tools(server):
         response = await auth.request(
             "GET",
             f"/superadmin/passengers/{passenger_id}/report",
+            base_url=AUTH_BASE_URL,
             params=params,
         )
         response.raise_for_status()
@@ -116,6 +120,7 @@ def register_superadmin_tools(server):
         response = await auth.request(
             "GET",
             "/superadmin/analytics",
+            base_url=AUTH_BASE_URL,
             params=params,
         )
         response.raise_for_status()

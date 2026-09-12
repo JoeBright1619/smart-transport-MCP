@@ -28,7 +28,7 @@ def register_audit_tools(server):
 
         response = await auth.request(
             "GET",
-            "/audit",
+            "/audit-logs",
             params=params,
         )
         response.raise_for_status()
