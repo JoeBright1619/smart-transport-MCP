@@ -21,6 +21,35 @@ OMNIROUTE_MODEL = os.getenv(
     "auto",
 )
 
+def filter_tool_arguments(
+    tool_name: str,
+    arguments: dict,
+    tool_schemas: dict,
+) -> dict:
+    """Keep only arguments defined by the MCP tool schema."""
+
+    schema = tool_schemas.get(tool_name, {})
+
+    allowed_arguments = schema.get(
+        "properties",
+        {}
+    )
+
+    filtered_arguments = {
+        key: value
+        for key, value in arguments.items()
+        if key in allowed_arguments
+    }
+
+    removed_arguments = set(arguments) - set(filtered_arguments)
+
+    if removed_arguments:
+        print(
+            f"Removed unsupported arguments from "
+            f"{tool_name}: {removed_arguments}"
+        )
+
+    return filtered_arguments
 
 def convert_mcp_tools(tools):
     result = []
@@ -67,6 +96,7 @@ async def run_agent(
     http_client: httpx.AsyncClient,
     messages: list[dict],
     mcp_tools: list[dict],
+    tool_schemas: dict,
     max_iterations: int = 5,
     max_tool_calls: int = 10,
 ):
@@ -101,7 +131,11 @@ async def run_agent(
             arguments = json.loads(
                 tool_call["function"]["arguments"]
             )
-
+            arguments = filter_tool_arguments(
+                tool_name,
+                arguments,
+                tool_schemas,
+            )
             tool_call_count += 1
 
             print(
@@ -204,6 +238,11 @@ async def main():
             mcp_tools = convert_mcp_tools(
                 tools_result.tools
             )
+            
+            tool_schemas = {
+            tool["function"]["name"]: tool["function"]["parameters"]
+            for tool in mcp_tools
+        }
 
             print(
                 f"Loaded {len(mcp_tools)} MCP tools."
@@ -212,6 +251,15 @@ async def main():
             user_message = input("\nYou: ")
 
             messages = [
+                        {
+                "role": "system",
+                "content": (
+                    "You are an assistant for the Smart Transport system. "
+                    "Use the available tools to retrieve information and perform tasks. "
+                    "When calling a tool, only provide arguments that are defined "
+                    "by that tool's schema. Do not invent or add extra arguments."
+                ),
+            },
                 {
                     "role": "user",
                     "content": user_message,
@@ -224,6 +272,7 @@ async def main():
                     http_client,
                     messages,
                     mcp_tools,
+                    tool_schemas,
                 )
 
             print("\nFinal answer:")
