@@ -62,6 +62,92 @@ async def ask_llm(
 
     return response.json()
 
+async def run_agent(
+    session: ClientSession,
+    http_client: httpx.AsyncClient,
+    messages: list[dict],
+    mcp_tools: list[dict],
+    max_iterations: int = 5,
+):
+    for iteration in range(max_iterations):
+        print(f"\n--- Agent iteration {iteration + 1} ---")
+
+        result = await ask_llm(
+            http_client,
+            messages,
+            mcp_tools,
+        )
+
+        message = result["choices"][0]["message"]
+
+        # No tool call means the LLM is ready to answer the user.
+        if not message.get("tool_calls"):
+            return message.get("content", "")
+
+        # Add the assistant's tool-call message to the conversation.
+        messages.append(message)
+
+        for tool_call in message["tool_calls"]:
+            tool_name = tool_call["function"]["name"]
+
+            arguments = json.loads(
+                tool_call["function"]["arguments"]
+            )
+
+            print(f"Tool: {tool_name}")
+            print(f"Arguments: {arguments}")
+
+            try:
+                tool_result = await session.call_tool(
+                    tool_name,
+                    arguments=arguments,
+                )
+
+                tool_content = tool_result.content[0].text
+
+                print("Tool result received.")
+
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call["id"],
+                        "content": tool_content,
+                    }
+                )
+
+            except Exception as exc:
+                print(f"Tool error: {exc}")
+
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call["id"],
+                        "content": f"Tool execution failed: {exc}",
+                    }
+                )
+
+    messages.append(
+    {
+        "role": "user",
+        "content": (
+            "You have reached the maximum number of tool-use "
+            "iterations. Please answer the original request "
+            "using the information you have already collected. "
+            "Do not call any more tools."
+        ),
+    }
+    )
+
+    result = await ask_llm(
+        http_client,
+        messages,
+        [],
+    )
+
+    return result["choices"][0]["message"].get(
+        "content",
+        "I couldn't complete the request.",
+    )
 
 async def main():
     server_params = StdioServerParameters(
@@ -100,36 +186,14 @@ async def main():
             ]
 
             async with httpx.AsyncClient(timeout=120.0) as http_client:
-                result = await ask_llm(
+                final_answer = await run_agent(
+                    session,
                     http_client,
                     messages,
                     mcp_tools,
                 )
 
-            message = result["choices"][0]["message"]
-
-            print("\nLLM response:")
-            print(message)
-
-            if message.get("tool_calls"):
-                for tool_call in message["tool_calls"]:
-                    tool_name = tool_call["function"]["name"]
-                    arguments = json.loads(
-                                tool_call["function"]["arguments"]
-                            )
-
-                    print("\nTool requested:")
-                    print(f"Name: {tool_name}")
-                    print(f"Arguments: {arguments}")
-
-                    result = await session.call_tool(
-                        tool_name,
-                        arguments=arguments,
-                    )
-
-                    print("\nTool result:")
-                    print(result)
-
-
+            print("\nFinal answer:")
+            print(final_answer)
 if __name__ == "__main__":
     asyncio.run(main())
