@@ -68,7 +68,10 @@ async def run_agent(
     messages: list[dict],
     mcp_tools: list[dict],
     max_iterations: int = 5,
+    max_tool_calls: int = 10,
 ):
+    tool_call_count = 0
+    limit_reason = None
     for iteration in range(max_iterations):
         print(f"\n--- Agent iteration {iteration + 1} ---")
 
@@ -88,12 +91,23 @@ async def run_agent(
         messages.append(message)
 
         for tool_call in message["tool_calls"]:
+            if tool_call_count >= max_tool_calls:
+                limit_reason = "tool-call"
+                print("\nMaximum tool-call limit reached.")
+                break
+
             tool_name = tool_call["function"]["name"]
 
             arguments = json.loads(
                 tool_call["function"]["arguments"]
             )
 
+            tool_call_count += 1
+
+            print(
+                f"\nTool call "
+                f"{tool_call_count}/{max_tool_calls}"
+            )
             print(f"Tool: {tool_name}")
             print(f"Arguments: {arguments}")
 
@@ -125,17 +139,28 @@ async def run_agent(
                         "content": f"Tool execution failed: {exc}",
                     }
                 )
-
-    messages.append(
-    {
-        "role": "user",
-        "content": (
+        if limit_reason == "tool-call":
+            break
+    if limit_reason == "tool-call":
+        limit_message = (
+            "You have reached the maximum number of tool calls. "
+            "Please answer the original request using the "
+            "information you have already collected. "
+            "Do not call any more tools."
+            )
+    else:
+        limit_message = (
             "You have reached the maximum number of tool-use "
             "iterations. Please answer the original request "
             "using the information you have already collected. "
             "Do not call any more tools."
-        ),
-    }
+        )
+
+    messages.append(
+        {
+            "role": "user",
+            "content": limit_message,
+        }
     )
 
     result = await ask_llm(
@@ -195,5 +220,6 @@ async def main():
 
             print("\nFinal answer:")
             print(final_answer)
+            
 if __name__ == "__main__":
     asyncio.run(main())
