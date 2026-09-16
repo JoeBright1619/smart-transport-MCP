@@ -116,10 +116,18 @@ async def run_agent(
                     tool_name,
                     arguments=arguments,
                 )
-
                 tool_content = tool_result.content[0].text
 
-                print("Tool result received.")
+                if tool_result.is_error:
+                    print("Tool execution returned an error.")
+                    tool_content = (
+                        f"Tool {tool_name} failed.\n"
+                        f"Result: {tool_result.content[0].text}"
+                    )
+                else:
+                    print("Tool result received.")
+
+                
 
                 messages.append(
                     {
