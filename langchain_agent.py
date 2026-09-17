@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain.agents import create_agent
+from langgraph.errors import GraphRecursionError
 
 
 load_dotenv()
@@ -50,21 +51,26 @@ async def main():
     )
     user_message = input("\nYou: ")
 
-    result = await agent.ainvoke(
-        {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": user_message,
-                }
-            ]
-        },
-        {
-            "recursion_limit": 10
-        }
-    )
-    print("\nFinal answer:")
-    print(result["messages"][-1].content)
+    try:
+        result = await agent.ainvoke(
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": user_message,
+                    }
+                ]
+            },
+            {
+                "recursion_limit": 10,
+            },
+        )
+
+        print("\nFinal answer:")
+        print(result["messages"][-1].content)
+
+    except GraphRecursionError:
+        print("\nAgent stopped: recursion limit reached.")
     
 if __name__ == "__main__":
     asyncio.run(main())
