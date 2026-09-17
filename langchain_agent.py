@@ -3,6 +3,7 @@ import os
 
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
+from langchain_mcp_adapters.client import MultiServerMCPClient
 
 load_dotenv()
 
@@ -27,13 +28,24 @@ async def main():
         timeout=120,
     )
 
-    response = await model.ainvoke(
-        "Explain what an MCP server is in one sentence."
+    mcp_client = MultiServerMCPClient(
+        {
+            "smart_transport": {
+                "command": ".venv\\Scripts\\python.exe",
+                "args": ["server.py"],
+                "transport": "stdio",
+            }
+        }
     )
 
-    print("\nResponse:")
-    print(response.content)
+    tools = await mcp_client.get_tools()
 
+    print(f"Loaded {len(tools)} MCP tools.")
 
+    for tool in tools:
+        print(f"\nTool: {tool.name}")
+        print(f"Description: {tool.description}")
+        print(f"Schema: {tool.args_schema}")
+    
 if __name__ == "__main__":
     asyncio.run(main())
