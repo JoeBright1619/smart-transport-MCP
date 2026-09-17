@@ -4,6 +4,8 @@ import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain.agents import create_agent
+
 
 load_dotenv()
 
@@ -42,10 +44,27 @@ async def main():
 
     print(f"Loaded {len(tools)} MCP tools.")
 
-    for tool in tools:
-        print(f"\nTool: {tool.name}")
-        print(f"Description: {tool.description}")
-        print(f"Schema: {tool.args_schema}")
+    agent = create_agent(
+        model=model,
+        tools=tools,
+    )
+    user_message = input("\nYou: ")
+
+    result = await agent.ainvoke(
+        {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": user_message,
+                }
+            ]
+        },
+        {
+            "recursion_limit": 10
+        }
+    )
+    print("\nFinal answer:")
+    print(result["messages"][-1].content)
     
 if __name__ == "__main__":
     asyncio.run(main())
