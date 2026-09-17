@@ -1,9 +1,10 @@
-from contextlib import asynccontextmanager
-from typing import AsyncIterator
-
-from mcp.server.mcpserver import Context, MCPServer
+import sys
 
 from auth import AuthManager
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+from mcp.server.fastmcp import Context, FastMCP
+import traceback
 from tools.alerts import register_alert_tools
 from tools.drivers import register_driver_tools
 from tools.maintenance import register_maintenance_tools
@@ -21,20 +22,31 @@ from tools.superadmin import register_superadmin_tools
 
 
 @asynccontextmanager
-async def lifespan(server: MCPServer) -> AsyncIterator[dict]:
+async def lifespan(server: FastMCP) -> AsyncIterator[dict]:
+    print("LIFESPAN: starting", file=sys.stderr, flush=True)
+
     auth = AuthManager()
 
-    await auth.start()
-
     try:
-        yield {
-            "auth": auth,
-        }
+        print("LIFESPAN: starting auth", file=sys.stderr, flush=True)
+
+        await auth.start()
+
+        print("LIFESPAN: auth started successfully", file=sys.stderr, flush=True)
+
+        yield {"auth": auth}
+
+    except Exception:
+        print("LIFESPAN: ERROR", file=sys.stderr, flush=True)
+        traceback.print_exc(file=sys.stderr)
+        raise
+
     finally:
+        print("LIFESPAN: closing auth", file=sys.stderr, flush=True)
         await auth.close()
 
 
-mcp = MCPServer(
+mcp = FastMCP(
     name="Smart Transport",
     lifespan=lifespan,
 )

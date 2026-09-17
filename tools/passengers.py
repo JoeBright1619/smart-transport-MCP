@@ -1,4 +1,4 @@
-from mcp.server.mcpserver import Context
+from mcp.server.fastmcp import Context
 
 from auth import AuthManager
 
