@@ -21,7 +21,30 @@ OMNIROUTE_MODEL = os.getenv(
     "OMNIROUTE_MODEL",
     "auto",
 )
+async def generate_fallback_answer(model, messages):
+    response = await model.ainvoke(
+        messages
+        + [
+            {
+                "role": "user",
+                "content": (
+                    "You have reached the tool execution limit. "
+                    "Do not call any more tools. "
+                    "Using only the information already collected "
+                    "in the conversation, provide the best answer "
+                    "you can to the user's original request. "
+                    "If the available information is insufficient, "
+                    "say so clearly instead of guessing."
+                    "Do not infer a metric that was not directly provided."
+                    "Distinguish facts from calculations and assumptions."
+                    "If the requested metric cannot be established from the"
+                    "collected data, say that it cannot be determined."
+                ),
+            }
+        ]
+    )
 
+    return response.content
 
 async def main():
     model = ChatOpenAI(
@@ -50,9 +73,10 @@ async def main():
         tools=tools,
     )
     user_message = input("\nYou: ")
-
+    last_state = None
     try:
-        result = await agent.ainvoke(
+    
+        async for state in agent.astream(
             {
                 "messages": [
                     {
@@ -64,13 +88,40 @@ async def main():
             {
                 "recursion_limit": 10,
             },
-        )
+            stream_mode="values",
+        ):
+            last_state = state
 
-        print("\nFinal answer:")
-        print(result["messages"][-1].content)
+            print("\n--- Agent state update ---")
+
+            for message in state["messages"]:
+                print(
+                    f"{type(message).__name__}: "
+                    f"{message.content}"
+                )
+
+        if last_state:
+            print("\nFinal answer:")
+            print(last_state["messages"][-1].content)
 
     except GraphRecursionError:
         print("\nAgent stopped: recursion limit reached.")
+
+        if last_state:
+            messages = last_state["messages"]
+
+            print(
+                f"\nCollected {len(messages)} messages "
+                "before stopping."
+            )
+
+            final_answer = await generate_fallback_answer(
+                model,
+                messages,
+            )
+
+            print("\nFinal answer:")
+            print(final_answer)
     
 if __name__ == "__main__":
     asyncio.run(main())
